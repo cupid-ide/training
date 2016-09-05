@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest
+END
+esm.F90
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/esm.F90
+END
+esmApp.F90
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/esmApp.F90
+END
+med.F90
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/med.F90
+END
+ocn.F90
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/ocn.F90
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/Makefile
+END
+README
+K 25
+svn:wc:ra_dav:version-url
+V 89
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/README
+END
+ice.F90
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/ice.F90
+END
+atm.F90
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/atm.F90
+END
+run-gordon.ksh
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/ESPC-System/!svn/ver/1829/branches/dev/ESPC-SRC/proto/AtmOcnIceMedPetListTest/run-gordon.ksh
+END

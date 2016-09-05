@@ -1,0 +1,11 @@
+This implements a very simple model cap that can be built and installed to be linked in a NUOPC application. This code requires ESMF version 7.
+
+Build:
+1. export ESMFMKFILE=/home/feiliu/ESMF/esmf/DEFAULTINSTALLDIR/lib/libg/Linux.gfortran.64.mpich2.default/esmf.mk
+   or module load esmf
+2. make
+
+This simple cap will create a NUOPC cap installation in ${HOME}/CAP-INSTALLS/cap_${installdate} with the following files:
+libmodel_cap.a  model_cap.mod  model.mk
+
+The NUOPC application makefile can include model.mk to automatically ingest the module and library file for compilation/linkage.

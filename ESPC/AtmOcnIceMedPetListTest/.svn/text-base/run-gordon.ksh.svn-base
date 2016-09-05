@@ -1,0 +1,25 @@
+#!/bin/ksh
+#PBS -A NRLSS03755018
+#PBS -o /p/work1/chenchai/nuopc/AtmOcnIceMedPetListTest/out.log
+#PBS -j oe
+#PBS -l walltime=00:05:00
+#PBS -N proto
+#PBS -l select=6:ncpus=6
+#PBS -q standard
+#PBS -V
+#
+#unalias rm
+#umask 022
+#set -x
+#
+
+cd $WORKDIR/nuopc/AtmOcnIceMedPetListTest
+cp $HOME/nuopc/AtmOcnIceMedPetListTest/esmApp .
+rm PET* out.log core
+date
+
+ aprun -n 6 ./esmApp > out.list
+
+
+date
+

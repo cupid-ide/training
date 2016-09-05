@@ -1,0 +1,7 @@
+# ESMF self-describing build dependency makefile fragment
+# src location Zeus: wd
+
+ESMF_DEP_FRONT     = model_cap_mod
+ESMF_DEP_INCPATH   = /home/rocky/CAP-INSTALLS/model_cap_2016-09-05-15-53-13
+ESMF_DEP_CMPL_OBJS = 
+ESMF_DEP_LINK_OBJS = /home/rocky/CAP-INSTALLS/model_cap_2016-09-05-15-53-13/libmodel.a /home/rocky/CAP-INSTALLS/model_cap_2016-09-05-15-53-13/liblanl_model.a

@@ -1,0 +1,33 @@
+README for ATM-OCN-ICE-MED with petList NUOPC prototype
+-------------------------------------------------------
+
+Dependencies:
+  - ESMF v7.0.0 beta
+  
+Build:
+  - Set environment variable ESMFMKFILE to point to the esmf.mk of your ESMF
+    installation.
+  - gmake
+  
+Execution:
+  - Optionally set environment variable:
+     - export ESMF_RUNTIME_COMPLIANCECHECK=ON  or
+     - export ESMF_RUNTIME_COMPLIANCECHECK=ON:JSON=ON
+  - mpirun -np 6 ./esmApp
+  
+Output:
+  - PET*.Log files containing compliance checker output if turned on.
+  - The prototype outputs time stepping information to stdout.
+  
+
+
+Code structure:
+  - Makefile    - Makefile that is based on the standard esmf.mk mechanism.
+  - atm.F90     - The ATM component, specializing generic NUOPC_Model.
+  - ocn.F90     - The OCN component, specializing generic NUOPC_Model.
+  - ice.F90     - The ICE component, specializing generic NUOPC_Model.
+  - med.F90     - The Mediator component, specializing generic 
+                  NUOPC_Mediator.
+  - esm.F90     - The Earth System Model (ESM) component, specializing generic
+                  NUOPC_Driver. Define partial petLists for ATM, OCN, ICE, and MED.
+  - esmApp.F90  - ESM driver application.
