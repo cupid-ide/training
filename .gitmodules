@@ -1,0 +1,6 @@
+[submodule "CAP"]
+    path = CAP
+    url = git@github.com:feiliuesmf/model_cap.git
+[submodule "MODEL"]
+    path = MODEL
+    url = git@github.com:feiliuesmf/model.git
