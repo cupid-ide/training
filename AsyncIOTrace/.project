@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>AsyncIOTrace</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.linuxtools.tmf.project.nature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>Experiments/AsyncExp/AsyncExp_</name>
+			<type>1</type>
+			<location>/home/rocky/eclipse/parallel-neon/ws/AsyncIOTrace/Experiments/.bookmarks</location>
+		</link>
+		<link>
+			<name>Experiments/AsyncExp/PET0.ESMF_LogFile</name>
+			<type>1</type>
+			<location>/home/rocky/eclipse/parallel-neon/ws/AsyncIOTrace/Traces/PET0.ESMF_LogFile</location>
+		</link>
+		<link>
+			<name>Experiments/AsyncExp/PET1.ESMF_LogFile</name>
+			<type>1</type>
+			<location>/home/rocky/eclipse/parallel-neon/ws/AsyncIOTrace/Traces/PET1.ESMF_LogFile</location>
+		</link>
+		<link>
+			<name>Experiments/AsyncExp/PET2.ESMF_LogFile</name>
+			<type>1</type>
+			<location>/home/rocky/eclipse/parallel-neon/ws/AsyncIOTrace/Traces/PET2.ESMF_LogFile</location>
+		</link>
+		<link>
+			<name>Experiments/AsyncExp/PET3.ESMF_LogFile</name>
+			<type>1</type>
+			<location>/home/rocky/eclipse/parallel-neon/ws/AsyncIOTrace/Traces/PET3.ESMF_LogFile</location>
+		</link>
+	</linkedResources>
+</projectDescription>
