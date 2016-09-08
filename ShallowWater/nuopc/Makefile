@@ -45,14 +45,14 @@ all: sw_main
 sw: sw.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
 
-sw_main: sw_main.o sw_driver.o sw_cap.o sw_refactor.o
+sw_main: sw_main.o sw_driver.o ShallowWaterCap.o sw_refactor.o ATM.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS)
 
 
 # module dependencies:
 sw_main.o: sw_driver.o
-sw_driver.o: sw_cap.o
-sw_cap.o: sw_refactor.o
+sw_driver.o: ShallowWaterCap.o ATM.o
+ShallowWaterCap.o: sw_refactor.o
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------

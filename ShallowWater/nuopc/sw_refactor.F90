@@ -139,6 +139,8 @@ module sw_refactor
     ! make public what needs to be accessed by the cap
     public :: nx        ! used by cap
     public :: ny        ! used by cap
+    public :: dx
+    public :: dy
     public :: XCoord    ! used by cap
     public :: YCoord    ! used by cap
     public :: h         ! fluid depth, will be exported by cap
