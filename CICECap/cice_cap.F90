@@ -1,12 +1,386 @@
-!--------------- LANL CICE NUOPC CAP -----------------
-! This is the LANL CICE model cap component that's NUOPC compiant.
-!
-! Author:  Fei.Liu@gmail.com
-!
-! 5/10/13
-! This is now acting as a cap/connector between NUOPC driver and LANL CICE code.
-!
-
+!>
+!! @mainpage Los Alamos Sea Ice (CICE) NUOPC Cap
+!! @author Fei Liu (fei.liu@gmail.com)
+!! @author Rocky Dunlap (rocky.dunlap@noaa.gov)
+!! @date 5/10/13 Original documentation
+!! @date 10/6/16 Moved to doxygen
+!!
+!! @tableofcontents
+!!
+!! @section Overview Overview
+!!
+!! **This CICE cap has been tested with versions 4.0 and 5.0.2 of CICE.**
+!!
+!! This document describes the CICE "cap", which is a small software layer that is
+!! required when the [Los Alamos sea ice model] (http://oceans11.lanl.gov/trac/CICE)
+!! is used in [National Unified Operation Prediction Capability]
+!! (http://www.earthsystemcog.org/projects/nuopc) (NUOPC) coupled systems.
+!! The NUOPC Layer is a software layer built on top of the [Earth System Modeling
+!! Framework] (https://www.earthsystemcog.org/projects/esmf) (ESMF).
+!! ESMF is a high-performance modeling framework that provides
+!! data structures, interfaces, and operations suited for building coupled models
+!! from a set of components. NUOPC refines the capabilities of ESMF by providing
+!! a more precise definition of what it means for a model to be a component and
+!! how components should interact and share data in a coupled system. The NUOPC
+!! Layer software is designed to work with typical high-performance models in the
+!! Earth sciences domain, most of which are written in Fortran and are based on a
+!! distributed memory model of parallelism (MPI).
+!! A NUOPC "cap" is a Fortran module that serves as the interface to a model
+!! when it's used in a NUOPC-based coupled system.
+!! The term "cap" is used because it is a small software layer that sits on top
+!! of model code, making calls into it and exposing model data structures in a
+!! standard way. For more information about creating NUOPC caps in general, please
+!! see the [Building a NUOPC Model]
+!! (http://www.earthsystemmodeling.org/esmf_releases/non_public/ESMF_7_0_0/NUOPC_howtodoc/)
+!! how-to document.
+!!
+!!
+!! The CICE cap package contains a single Fortran source file and two makefiles. The Fortran
+!! source file (cice_cap.F90) implements a standard Fortran module that uses ESMF
+!! and NUOPC methods and labels to create a NUOPC cap for CICE. It also uses
+!! variables and subroutines from CICE modules to invoke CICE subroutines and
+!! exchange data. In the simplest terms, the CICE cap should be thought of as a thin
+!! translation layer between the CICE Fortran code and the NUOPC infrastrucutre.
+!! The source file can be built into a linkable library and
+!! Fortran module file (.mod) for inclusion in other Fortran programs.
+!!
+!! @image html docimages/CAP_Anatomy_small.jpg "Architecture diagram showing how the CICE cap is an interface layer between the model code and the NUOPC coupling infrastructure"
+!!
+!! @subsection CapSubroutines Cap Subroutines
+!!
+!! The CICE cap Fortran module contains a set of subroutines that are required
+!! by NUOPC.  These subroutines are called by the NUOPC infrastructure according
+!! to a predefined calling sequence.  Some subroutines are called during
+!! initialization of the coupled system, some during the run of the coupled
+!! system, and some during finalization of the coupled system.  The initialization
+!! sequence is the most complex and is governed by the NUOPC technical rules.
+!! Details about the initialization sequence can be found in the [NUOPC Reference Manual]
+!! (http://www.earthsystemmodeling.org/esmf_releases/non_public/ESMF_7_0_0/NUOPC_refdoc/node3.html#SECTION00034000000000000000).
+!!
+!! A particularly important part of the NUOPC intialization sequence is to establish
+!! field connections between models.  Simply put, a field connection is established
+!! when a field output by one model can be consumed by another.  As an example, the
+!! CICE model is able to accept a precipitation rate when coupled to an atmosphere
+!! model.  In this case a field connection will be established between the precipitation
+!! rate exported from the atmosphere and the precipitation rate imported into the
+!! CICE model.  Because models may uses different variable names for physical
+!! quantities, NUOPC relies on a set of standard names and a built-in, extensible
+!! standard name dictionary to match fields between models.  More information about
+!! the use of standard names can be found in the [NUOPC Reference Manual]
+!! (http://www.earthsystemmodeling.org/esmf_releases/non_public/ESMF_7_0_0/NUOPC_refdoc/node3.html#SECTION00032000000000000000).
+!!
+!! Two key initialization phases that appear in every NUOPC cap, including this CICE
+!! cap are the field "advertise" and field "realize" phases.  *Advertise* is a special
+!! NUOPC term that refers to a model participating in a coupled system
+!! providing a list of standard names of required import fields and available export
+!! fields.  In other words, each model will advertise to the other models which physical fields
+!! it needs and which fields it can provide when coupled. NUOPC compares all of the advertised
+!! standard names and creates a set of unidirectional links, each from one export field
+!! in a model to one import field in another model.  When these connections have been established,
+!! all models in the coupled system need to provide a description of their geographic
+!! grid (e.g., lat-lon, tri-polar, cubed sphere, etc.) and allocate their connected
+!! fields on that grid.  In NUOPC terms, this is refered to as *realizing* a set of
+!! fields.  NUOPC relies on ESMF data types for this, such as the [ESMF_Grid]
+!! (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_refdoc/node5.html#SECTION05080000000000000000)
+!! type, which describes logically rectangular grids and the [ESMF_Field]
+!! (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_refdoc/node5.html#SECTION05030000000000000000)
+!! type, which wraps a models data arrays and provides basic metadata. Because ESMF supports
+!! interpolation between different grids (sometimes called "regridding" or "grid remapping"),
+!! it is not necessary that models share a grid.  As you will see below
+!! the *advertise* and *realize* phases each have a subroutine in the CICE cap.
+!!
+!! The following table summarizes the NUOPC-required subroutines that appear in the
+!! CICE cap.  The "Phase" column says whether the subroutine is called during the
+!! initialization, run, or finalize part of the coupled system run.
+!!
+!!
+!! Phase    | CICE Cap Subroutine                                                |  Description
+!! ---------|--------------------------------------------------------------------|-------------------------------------------------------------
+!! Init     | [InitializeP0] (@ref cice_cap_mod::initializep0)                   | Sets the Initialize Phase Definition (IPD) version to use
+!! Init     | [InitializeAdvertise] (@ref cice_cap_mod::initializeadvertise)     | Advertises standard names of import and export fields
+!! Init     | [InitializeRealize] (@ref cice_cap_mod::initializerealize)         | Creates an ESMF_Grid for the CICE grid as well as ESMF_Fields for import and export fields
+!! Init     | [SetClock] (@ref cice_cap_mod::setclock)                           | Before the run, sets up the timestep interval
+!! Run      | [ModelAdvance_Slow] (@ref cice_cap_mod::modeladvance_slow)         | Advances the model by a timestep by calling CICE_Run
+!! Final    | [CICE_Model_Finalize] (@ref cice_cap_mod::cice_model_finalize)     | Cleans up by calling CICE_Finalize
+!!
+!! @section UnderlyingModelInterfaces Underlying Model Interfaces
+!!
+!! The following diagram shows a diagram of how the CICE cap code is structured.  Red boxes are
+!! subroutines that are registered with NUOPC.  Light blue boxes are calls into CICE subroutines.
+!! Yellow boxes are calls into the ESMF/NUOPC library.
+!!
+!! @image html docimages/CICE_CAP_Methods_small.png "A high level view of the code organization of the CICE cap"
+!!
+!! @subsection DomainCreation Domain Creation
+!!
+!! As outlined in section 4.2 of the [CICE user's guide]
+!! (http://oceans11.lanl.gov/trac/CICE/attachment/wiki/WikiStart/cicedoc.pdf?format=raw),
+!! the CICE model supports several kinds of grids: regular rectangular, regional,
+!! displaced_pole, and tripolar.  The CICE cap currently only supports the
+!! tripolar grid with a single southern pole and a bipole in northern latitudes.
+!! The plots below show the latitude and longitude coordinate values (radians)
+!! for a 0.5 degree (720x410 cells) tripolar grid.
+!!
+!!  <table border="0"><tr>
+!!  <td>@image html docimages/cice_grid_ulat.png "Latitude coordinates of tripolar grid"</td>
+!!  <td>@image html docimages/cice_grid_ulon.png "Longitude coordinates of tripolar grid"</td>
+!!  </tr></table>
+!!
+!! No changes were made to the native CICE mechanisms for setting up the grid.
+!! This procedure happens as part of the call to `CICE_Initialize()`.  After CICE sets up
+!! its grid, the grid structure is translated into an `ESMF_Grid` object.  Setting
+!! up the `ESMF_Grid` is handled as part of the [InitializeRealize]
+!! (@ref cice_cap_mod::initializerealize) subroutine.  All of the details of the tripolar
+!! grid must be provided to ESMF, including:
+!!   - the global number of cells in the X and Y directions,
+!!   - how the global grid is decomposed into blocks,
+!!   - the connectivity along the southern and northern rows (to set up the northern bipole),
+!!   - the periodic boundary condition in the X direction,
+!!   - the center (called "T cell" in the CICE manual) and corner coordinates ("U cell") for all grid points,
+!!   - the grid cell areas, and
+!!   - the grid cell land/sea mask.
+!!
+!! CICE already has data structures to represent all of these grid features. However, NUOPC
+!! infrastrucuture requires a standard representation of grids using ESMF types. Since the
+!! tripolar grid is a logically rectangular grid (there is an underlying X-Y index space),
+!! the [ESMF_Grid] (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_refdoc/node5.html#SECTION05080000000000000000)
+!! type is used.  Setting up the `ESMF_Grid` requires accessing some of the ice domain
+!! variables inside CICE.  Refer to the "use" statements at the top of the cap (listed below)
+!! to see which domain variables are accessed by the cap.
+!!
+!! @code
+!!  use ice_blocks, only: nx_block, ny_block, nblocks_tot, block, get_block, &
+!!                        get_block_parameter
+!!  use ice_domain_size, only: max_blocks, nx_global, ny_global
+!!  use ice_domain, only: nblocks, blocks_ice, distrb_info
+!!  use ice_distribution, only: ice_distributiongetblockloc
+!!  use ice_constants, only: Tffresh, rad_to_deg
+!!  use ice_calendar,  only: dt
+!!  use ice_flux
+!!  use ice_grid, only: TLAT, TLON, ULAT, ULON, hm, tarea, ANGLET, ANGLE, &
+!!                      dxt, dyt, t2ugrid_vector
+!!  use ice_state
+!!  use CICE_RunMod
+!!  use CICE_InitMod
+!!  use CICE_FinalMod
+!! @endcode
+!!
+!! The ESMF_Grid is set up in several steps inside [InitializeRealize]
+!! (@ref cice_cap_mod::initializerealize). The `deBlockList` variables is used
+!! to store the min and max indices of each decomposition block. This is populated
+!! using index values from the CICE subroutine `get_block_parameters()`. The
+!! `petMap` array is used to store, for each block, the processor that is
+!! assigned to that block.  This information is retrieved by calling the
+!! CICE subroutine `ice_distributionGetBlockLoc()`.  The `petMap` is then used
+!! to create an [ESMF_DELayout]
+!! (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_refdoc/node6.html#SECTION060110000000000000000),
+!! which describes how decomposition elements (blocks in CICE terms) are assigned
+!! to PETs (processors).
+!!
+!! The global CICE grid index space (`nx_global` x `ny_global`) is set up as an [ESMF_DistGrid]
+!! (http://www.earthsystemmodeling.org/esmf_releases/last_built/ESMF_refdoc/node5.html#SECTION050120000000000000000)
+!! by passing it the `deBlockList`, `delayout`, and a `connectionList` which defines
+!! the periodic boundary condition in the X direction and bipole at the top. Finally,
+!! the `ESMF_Grid` is created from the `ESMF_DistGrid`. The `ESMF_Grid` will use the
+!! index space defined by the `ESMF_DistGrid` and geographic coordinates are assigned
+!! to cell centers and corners.  The center coordinates are populating using the CICE
+!! `TLON` and `TLAT` arrays and the corners using the `ULON` and `ULAT` arrays. Also
+!! assigned are the cell areas (using the `tarea` array) and the grid mask (using the
+!! `hm` array).  Details of how the CICE grid is set up internally in the model is
+!! beyond the scope of this cap documentation, however the reader is refered to
+!! section 4.2 of the [CICE user's guide] (http://oceans11.lanl.gov/trac/CICE/attachment/wiki/WikiStart/cicedoc.pdf?format=raw)
+!! for more information.
+!!
+!!
+!! @subsection Initialization Initialization
+!!
+!! The CICE cap calls into the native `CICE_Initialize()` subroutine in the
+!! [InitializeAdvertise] (@ref cice_cap_mod::initializeadvertise) subroutine.
+!! The only parameter passed is the MPI communicator.  The global MPI communicator
+!! is managed by ESMF and is retrieved from the current `ESMF_VM`.
+!!
+!! @subsection Run Run
+!!
+!! The CICE cap calls into the native `CICE_Run()` subroutine in the
+!! [ModelAdvance_Slow] (@ref cice_cap_mod::modeladvance_slow) subroutine. The internal
+!! CICE timestepping loop has been disabled when using the NUOPC cap since the
+!! main driver loop is provided by the NUOPC infrastructure at a level above
+!! the CICE model.  Therefore, a call into `CICE_Run()` will only advance the
+!! CICE model by a single time step.
+!!
+!! Prior to calling `CICE_Run()` the cap copies fields from the import
+!! `ESMF_State` into the corresponding data arrays inside the model. The import state
+!! contains a set of fields brought in through the NUOPC coupling infrastructure.
+!! These native model arrays are defined in the file ice_flux.F90.
+!! After copying in the import state fields, the call is made to `CICE_Run()`.  After
+!! the run, model fields are copied into the export `ESMF_State` so that NUOPC can
+!! transfer these fields to other models as required.
+!!
+!! Per field diagnostic output can be produced at the end of each run phase as
+!! described in the [I/O section] (@ref IO).
+!!
+!! @subsubsection VectorRotations Vector Rotations
+!!
+!! Vector rotation is done for import and export 2D vector fields in the NUOPC cap.
+!! In CICE cap, this happens inside of [ModelAdvance_Slow] (@ref cice_cap_mod::modeladvance_slow).
+!! The vector fields are rotated from a regular lat-lon grid to the CICE grid before
+!! `CICE_Run` and then rotated back to regular lat-lon grid after `CICE_Run`. The effect
+!! of this is most obvious in the northern polar region where CICE operates on a
+!! tripolar grid. Results on the T cell are also transformed to the U cell through
+!! CICE internal method t2ugrid_vector.
+!!
+!! The following assumptions are made during vector rotation:
+!!
+!! - The components of the 2D vector fields line up with local lat-lon direction
+!!   where north and east are the local positive directions. The
+!!   components are defined at cell center for all the grids.
+!!
+!! - The rotation angles are positive when measured counter
+!!   clockwise (CCW) from local lat-lon directions. This is the conventional defintion
+!!   for the angular dimension in a polar coordinate system.
+!!
+!! As such, the imported vector field V must be rotated locally as the model component
+!! local coordinate system is rotated CCW from well-defined lat-lon directions.
+!! The CCW rotation matrix M is
+!!
+!!     cos \theta         sin \theta
+!!     -sin \theta        cos \theta
+!!
+!!  Rotated vector V' = M V
+!!
+!! The transpose of this matrix corresponding to a CW coordinate system rotation is
+!! applied to the exported 2D vector fields before they are exported.
+!!
+!! @subsection Finalization Finalization
+!!
+!! To finalize the model, the CICE cap simple calls into the native `CICE_Finalize()`
+!! subroutine.
+!!
+!!
+!! @section ModelFields Model Fields
+!!
+!! The following tables list the import and export fields currently set up in the CICE cap.
+!!
+!! @subsection ImportFields Import Fields
+!!
+!! Standard Name                     | Units      | Model Variable  | File         | Description                     | Notes
+!! ----------------------------------|------------|-----------------|--------------|---------------------------------|--------------------------------------
+!! air_density_height_lowest         | kg m-3     | rhoa            | ice_flux.F90 | air density                     | |
+!! freezing_melting_potential        | W m-2      | frzmlt          | ice_flux.F90 | freezing/melting potential      | |
+!! inst_height_lowest                | m          | zlvl            | ice_flux.F90 | height of lowest level          | |
+!! inst_merid_wind_height_lowest     | m-2        | vatm            | ice_flux.F90 | wind v component                | [vector rotation applied] (@ref VectorRotations)
+!! inst_pres_height_lowest           | Pa         | (none)          |              | pressure at lowest level        | used to calculate potT (potential temperature)
+!! inst_spec_humid_height_lowest     | kg kg-1    | Qa              | ice_flux.F90 | specific humidity               | |
+!! inst_temp_height_lowest           | K          | Tair            | ice_flux.F90 | near surface air temperature    | |
+!! inst_zonal_wind_height_lowest     | m-2        | uatm            | ice_flux.F90 | wind u component                | [vector rotation applied] (@ref VectorRotations)
+!! mean_down_lw_flx                  | W m-2      | flw             | ice_flux.F90 | downward longwave flux          | |
+!! mean_down_sw_vis_dir_flx          | W m-2      | swvdr           | ice_flux.F90 | downward shortwave visible direct flux  | |
+!! mean_down_sw_vis_dif_flx          | W m-2      | swvdf           | ice_flux.F90 | downward shortwave visible diffuse flux | |
+!! mean_down_sw_ir_dir_flx           | W m-2      | swidr           | ice_flux.F90 | downward shortwave near infrared direct flux  | |
+!! mean_down_sw_ir_dif_flx           | W m-2      | swidf           | ice_flux.F90 | downward shortwave near infrared diffuse flux | |
+!! mean_fprec_rate                   | kg m-2 s-1 | fsnow           | ice_flux.F90 | snowfall rate                   | |
+!! mean_prec_rate                    | kg m-2 s-1 | frain           | ice_flux.F90 | rainfall rate                   | |
+!! (none)                            | W m-2      | fsw             | ice_flux.F90 | downward shortwave flux         | cap sets fsw as sum of shortwave components
+!! ocn_current_merid                 | m-2        | vocn            | ice_flux.F90 | ocean current v component       | [vector rotation applied] (@ref VectorRotations) |
+!! ocn_current_zonal                 | m-2        | uocn            | ice_flux.F90 | ocean current u component       | [vector rotation applied] (@ref VectorRotations) |
+!! sea_surface_temperature           | C          | sst             | ice_flux.F90 | sea surface temperature         | converted from Kelvin to Celcius |
+!! s_surf                            | ppt        | sss             | ice_flux.F90 | sea surface salinity            | |
+!! sea_lev                           | m m-1      | ss_tltx, sstlty | ice_flux.F90 | sea surface slope in x & y      | sea_lev used to compute slope components, then [vector rotation applied] (@ref VectorRotations), then `t2ugrid_vectors()` called to move slope components to U grid
+!!
+!! These fields are advertised as imports but not currently used by the cap:
+!! - inst_surface_height
+!! - inst_temp_height2m
+!! - inst_spec_humid_height2m
+!! - mean_merid_moment_flx
+!! - mean_zonal_moment_flx
+!! - mixed_layer_depth
+!! - sea_surface_slope_zonal
+!! - sea_surface_slope_merid
+!!
+!! @subsection ExportField Export Fields
+!!
+!! Standard Name                     | Units      | Model Variable  | File          | Description                     | Notes
+!! ----------------------------------|------------|-----------------|---------------|---------------------------------|--------------------------------------
+!! ice_fraction                      | 1          | aice            | ice_state.F90 | concentration of ice            | |
+!! ice_mask                          |            | hm              | ice_grid.F90  | ice mask                        | 0.0 indicates land cell and 1.0 indicates ocean cell
+!! inst_ice_ir_dif_albedo            | 1          | alidf           | ice_flux.F90  | near infrared diffuse albedo    | |
+!! inst_ice_ir_dir_albedo            | 1          | alidr           | ice_flux.F90  | near infrared direct albedo     | |
+!! inst_ice_vis_dif_albedo           | 1          | alvdf           | ice_flux.F90  | visible diffuse albedo          | |
+!! inst_ice_vis_dir_albedo           | 1          | advdr           | ice_flux.F90  | visible direct albedo           | |
+!! mean_evap_rate_atm_into_ice       | kg m-2 s-1 | evap            | ice_flux.F90  | evaporative water flux          | |
+!! mean_fresh_water_to_ocean_rate    | kg m-2 s-1 | fresh           | ice_flux.F90  | fresh water flux to ocean       | |
+!! mean_ice_volume                   | m          | vice            | ice_state.F90 | volume of ice per unit area     | |
+!! mean_laten_heat_flx_atm_into_ice  | W m-2      | flat            | ice_flux.F90  | latent heat flux                | |
+!! mean_net_sw_ir_dif_flx            | W m-2      | fswthruidf      | ice_flux.F90  | near infrared diffuse shortwave penetrating to ocean  | |
+!! mean_net_sw_ir_dir_flx            | W m-2      | fswthruidr      | ice_flux.F90  | near infrared direct shortwave penetrating to ocean   | |
+!! mean_net_sw_vis_dif_flx           | W m-2      | fswthruvdf      | ice_flux.F90  | visible diffuse shortwave penetrating to ocean        | |
+!! mean_net_sw_vis_dir_flx           | W m-2      | fswthruvdr      | ice_flux.F90  | visible direct shortwave penetrating to ocean         | |
+!! mean_salt_rate                    | kg m-2 s-1 | fsalt           | ice_flux.F90  | salt flux to ocean              | |
+!! mean_sensi_heat_flx_atm_into_ice  | W m-2      | fsens           | ice_flux.F90  | sensible heat flux              | |
+!! mean_snow_volume                  | m          | vsno            | ice_state.F90 | volume of snow per unit area    | |
+!! mean_sw_pen_to_ocn                | W m-2      | fswthru         | ice_flux.F90  | shortwave penetrating to ocean  | |
+!! mean_up_lw_flx_ice                | W m-2      | flwout          | ice_flux.F90  | outgoing longwave radiation     | average over ice fraction only
+!! net_heat_flx_to_ocn               | W m-2      | fhocn           | ice_flux.F90  | net heat flux to ocean          | |
+!! sea_ice_temperature               | K          | trcr            | ice_state.F90 | surface temperature of ice/snow | Celcius converted to Kelvin for export
+!! stress_on_air_ice_merid           | N m-2      | strairyT        | ice_flux.F90  | y component of stress on ice by air  | [vector rotation applied] (@ref VectorRotations)
+!! stress_on_air_ice_zonal           | N m-2      | strairxT        | ice_flux.F90  | x component of stress on ice by air  | [vector rotation applied] (@ref VectorRotations)
+!! stress_on_ocn_ice_merid           | N m-2      | strocnyT        | ice_flux.F90  | y component of stress on ice by ocean  | [vector rotation applied] (@ref VectorRotations)
+!! stress_on_ocn_ice_zonal           | N m-2      | strocnxT        | ice_flux.F90  | x component of stress on ice by ocean  | [vector rotation applied] (@ref VectorRotations)
+!!
+!! @subsection MemoryManagement Memory Management
+!!
+!! For coupling fields, the CICE cap has the capability to either reference the internal
+!! CICE data arrays directly, or to allow ESMF to allocate separate memory for the
+!! coupling fields.  Currently, the CICE cap is set up not to reference internal data
+!! arrays directly.  During the [ModelAdvance_Slow] (@ref cice_cap_mod::modeladvance_slow)
+!! phase, fields are copied from the import state into CICE internal data arrays.
+!! After the model integration timestep completes, internal data arrays are copied
+!! into the export state so they can be transferred for coupling.
+!!
+!! @subsection IO I/O
+!!
+!! The CICE cap implements a subroutine called `dumpCICEInternal` that writes
+!! the fields from ice_flux.F90 to NetCDF files. This is an optional diagnostic subroutine that
+!! allows the modeler to check the value of the fields and have a better idea of
+!! the state of CICE at each coupling time interval. This is useful to determine the impact of import and export
+!! Field connections made on the CICE model. Writing out of these fields during the
+!! run phase is controlled by the ESMF Attribute "DumpFields." This is read in
+!! during [InitializeP0] (@ref cice_cap_mod::initializep0).
+!!
+!! @section BuildingAndInstalling Building and Installing
+!!
+!! Of the two independent makefiles, makefile.nuopc links in the ESMF/NUOPC library
+!! and LANL CICE library from external environment variables inherited from an external
+!! build system to create liblanl_cice.a; makefile is a generic makefile that
+!! allows liblanl_cice.a to be built with user customizable settings.
+!! The build system should pass pre-defined LANL CICE library
+!! and include path and INSTALLDIR settings into makefile.nuopc. Upon completion,
+!! liblanl_cice.a and cice_cap.mod will be copied to the INSTALLDIR and can
+!! be linked into a coupled application with other components.
+!!
+!! @subsection Dependencies Dependencies
+!!
+!! The CICE cap is only dependent on the CICE model itself, liblanl_cice.a.
+!!
+!! @section RuntimeConfiguration Runtime Configuration
+!!
+!! CICE cap accepts two runtime configuration parameters (DumpFields and ProfileMemory)
+!! though component level ESMF Attribute settings.
+!! By default, DumpFields is true. When turned on to true, diagnose NetCDF files
+!! of incoming and outgoing fields will be written.
+!! By default, ProfileMemory is true. When turned on to true, run time memory
+!! profiling information will be written to ESMF log files.
+!!
+!! @section Repository
+!! The CICE NUOPC cap is maintained in a GitHub repository:
+!! https://github.com/feiliuesmf/lanl_cice_cap
+!!
+!! @section References
+!!
+!! - [Los Alamos CICE Home Page] (http://oceans11.lanl.gov/trac/CICE)
+!! - [CICE User's Guide] (http://oceans11.lanl.gov/trac/CICE/attachment/wiki/WikiStart/cicedoc.pdf?format=raw)
+!!
+!!
 module cice_cap_mod
 
   use ice_blocks, only: nx_block, ny_block, nblocks_tot, block, get_block, &
@@ -75,6 +449,12 @@ module cice_cap_mod
   !------------------- CICE code starts here -----------------------
   !-----------------------------------------------------------------------
 
+  !> NUOPC SetService method is the only public entry point.
+  !! SetServices registers all of the user-provided subroutines
+  !! in the module with the NUOPC layer.
+  !!
+  !! @param gcomp an ESMF_GridComp object
+  !! @param rc return code
   subroutine SetServices(gcomp, rc)
 
     type(ESMF_GridComp)  :: gcomp
@@ -141,6 +521,17 @@ module cice_cap_mod
 
   !-----------------------------------------------------------------------------
 
+  !> First initialize subroutine called by NUOPC.  The purpose
+  !! is to set which version of the Initialize Phase Definition (IPD)
+  !! to use.
+  !!
+  !! For this CICE cap, we are using IPDv01.
+  !!
+  !! @param gcomp an ESMF_GridComp object
+  !! @param importState an ESMF_State object for import fields
+  !! @param exportState an ESMF_State object for export fields
+  !! @param clock an ESMF_Clock object
+  !! @param rc return code
   subroutine InitializeP0(gcomp, importState, exportState, clock, rc)
     type(ESMF_GridComp)   :: gcomp
     type(ESMF_State)      :: importState, exportState
@@ -196,6 +587,16 @@ module cice_cap_mod
   
   !-----------------------------------------------------------------------------
 
+  !> Called by NUOPC to advertise import and export fields.  "Advertise"
+  !! simply means that the standard names of all import and export
+  !! fields are supplied.  The NUOPC layer uses these to match fields
+  !! between components in the coupled system.
+  !!
+  !! @param gcomp an ESMF_GridComp object
+  !! @param importState an ESMF_State object for import fields
+  !! @param exportState an ESMF_State object for export fields
+  !! @param clock an ESMF_Clock object
+  !! @param rc return code
   subroutine InitializeAdvertise(gcomp, importState, exportState, clock, rc)
 
     type(ESMF_GridComp)                    :: gcomp
@@ -242,6 +643,38 @@ module cice_cap_mod
   
   !-----------------------------------------------------------------------------
 
+  !> Called by NUOPC to realize import and export fields.  "Realizing" a field
+  !! means that its grid has been defined and an ESMF_Field object has been
+  !! created and put into the import or export State.
+  !!
+  !! CICE defines its own parallel decomposition in 2D blocks. The indices
+  !! are stored in i_glob and j_glob. These are used to create an ESMF_DistGrid
+  !! object using the deBlockList parameter.  The ESMF_DistGrid is set up with
+  !! a periodic boundary condition in the first (X) dimension and bipolar
+  !! boundary condition at the top row. These are set using calls to
+  !! ESMF_DistGridConnectionSet.  Information about how the decomposition
+  !! blocks are distributed among processors is determined by a call to
+  !! ice_distributionGetBlockLoc().
+  !!
+  !! Geographic coordinates are added to the ESMF_Grid object at center
+  !! and corner stagger locations.  CICE maintains these coordinates in
+  !! radians in the TLON, TLAT, ULON, and ULAT arrays.  They are converted
+  !! to degrees before adding to the ESMF_Grid object.  Cell areas are
+  !! set based on the CICE tarea array and cell masks are set based on
+  !! the hm array.
+  !!
+  !! The fields to import and export are stored in the fldsToIce and fldsFrIce
+  !! arrays, respectively.  Each field entry includes the standard name,
+  !! information about whether the field's grid will be provided by the cap,
+  !! and optionally a pointer to the field's data array.  Currently, all fields
+  !! are defined on the same grid defined by the cap (so set to "will provide").
+  !! The fields are created by calling cice_cap_mod::cice_realizefields.
+  !!
+  !! @param gcomp an ESMF_GridComp object
+  !! @param importState an ESMF_State object for import fields
+  !! @param exportState an ESMF_State object for export fields
+  !! @param clock an ESMF_Clock object
+  !! @param rc return code
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
     type(ESMF_GridComp)  :: gcomp
     type(ESMF_State)     :: importState, exportState
@@ -544,7 +977,15 @@ module cice_cap_mod
   
   !-----------------------------------------------------------------------------
 
-  ! CICE model uses same clock as parent gridComp
+  !> NUOPC specialization point to set up this cap's clock.
+  !!
+  !! By default, the clock is a copy of the clock coming in from the NUOPC
+  !! Driver.  In this case we are pulling in the thermodynamic timestep
+  !! from the CICE model (dt) an setting that as the "stability timestep."
+  !! This ensures that if dt is smaller than the Driver's requested timestep
+  !! length, it will use dt instead.  In this case, subcycling is automatically
+  !! handled by NUOPC, e.g., the CICE model will potentially be called multiple
+  !! times until it reaches the coupling timestep requested by the Driver.
   subroutine SetClock(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -593,6 +1034,29 @@ module cice_cap_mod
 
   !-----------------------------------------------------------------------------
 
+  !> Called by NUOPC to advance the CICE model a single timestep.
+  !!
+  !! This subroutine copies field data out of the cap import state and into the
+  !! model internal arrays.  Then it calls CICE_Run to make a single timestep.
+  !! Finally, it copies the updated arrays into the cap export state.
+  !!
+  !! This routine also writes out a diagnostic file for each import and export
+  !! field using NUOPC_FieldWrite.  The files are named field_ice_import_<fldname>.nc
+  !! and field_ice_export_<fldname>.nc, respectively.  In this subroutine there
+  !! are numerous calls to cice_cap_mod::state_getfldptr which is a convenience function to retrieve
+  !! the data pointer from an ESMF_State object based on the field's name.
+  !!
+  !! All incoming vectors from mediator are rotated counter clock wise onto local basis vector directions.
+  !! All outgoing vectors to mediator are rotated clock wise onto regular lat-lon directions.
+  !! Zonal and meridional sea surface slope fields are calculated from sea level input and
+  !! rotated counter clock wise onto local basis vector directions. Internally LANL cice
+  !! uses the zonal and meridional sea surface slope fields calculated here.
+  !!
+  !! At the end of the subroutine, a series of calls is made to cice_cap_mod::dumpciceinternal
+  !! which writes out a time slice of each CICE internal variable for diagnostic purposes.
+  !!
+  !! @param gcomp an ESMF_GridComp object
+  !! @param rc return code
   subroutine ModelAdvance_slow(gcomp, rc)
     type(ESMF_GridComp)                    :: gcomp
     integer, intent(out)                   :: rc
@@ -1240,6 +1704,11 @@ module cice_cap_mod
    if(profile_memory) call ESMF_VMLogMemInfo("Leaving CICE Model_ADVANCE: ")
   end subroutine 
 
+  !> Called by NUOPC at the end of the run to clean up.  The cap does
+  !! this simply by calling CICE_Finalize.
+  !!
+  !! @param gcomp the ESMF_GridComp object
+  !! @param rc return code
   subroutine cice_model_finalize(gcomp, rc)
 
     ! input arguments
@@ -1275,6 +1744,13 @@ module cice_cap_mod
 
   end subroutine cice_model_finalize
 
+  !> Advertises a set of fields in an ESMF_State object by calling
+  !! NUOPC_Advertise in a loop.
+  !!
+  !! @param state the ESMF_State object in which to advertise the fields
+  !! @param nfields number of fields
+  !! @param field_defs an array of fld_list_type listing the fields to advertise
+  !! @param rc return code
   subroutine CICE_AdvertiseFields(state, nfields, field_defs, rc)
 
     type(ESMF_State), intent(inout)             :: state
@@ -1308,6 +1784,16 @@ module cice_cap_mod
 
   end subroutine CICE_AdvertiseFields
 
+  !> Adds a set of fields to an ESMF_State object.  Each field is wrapped
+  !! in an ESMF_Field object.  Memory is either allocated by ESMF or
+  !! an existing CICE pointer is referenced.
+  !!
+  !! @param state the ESMF_State object to add fields to
+  !! @param grid the ESMF_Grid object on which to define the fields
+  !! @param nfields number of fields
+  !! @param field_defs array of fld_list_type indicating the fields to add
+  !! @param tag used to output to the log
+  !! @param rc return code
   subroutine CICE_RealizeFields(state, grid, nfields, field_defs, tag, rc)
 
     type(ESMF_State), intent(inout)             :: state
@@ -1502,6 +1988,12 @@ module cice_cap_mod
 
   !-----------------------------------------------------------------------------
 
+  !> Retrieve a pointer to a field's data array from inside an ESMF_State object.
+  !!
+  !! @param ST the ESMF_State object
+  !! @param fldname name of the fields
+  !! @param fldptr pointer to 3D array
+  !! @param rc return code
   subroutine State_GetFldPtr(ST, fldname, fldptr, rc)
     type(ESMF_State), intent(in) :: ST
     character(len=*), intent(in) :: fldname
@@ -1752,6 +2244,14 @@ module cice_cap_mod
 
   end subroutine fld_list_add
 
+  !> Writes out a diagnostic file containing field data named
+  !! field_ice_internal_<fldname>.nc.
+  !!
+  !! @param grid the ESMF_Grid on describing the field's grid
+  !! @param slice time spice number
+  !! @param stdname standard name of the field
+  !! @param nop ignored for now
+  !! @param farray array of data to write
   subroutine dumpCICEInternal(grid, slice, stdname, nop, farray)
 
     type(ESMF_Grid)          :: grid
