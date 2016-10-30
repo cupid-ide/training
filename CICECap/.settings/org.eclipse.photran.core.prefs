@@ -1,0 +1,7 @@
+EnableContentAssist=true
+EnableDeclView=true
+EnableHoverTip=true
+EnableVPG=true
+FortranIncludePaths=\\CICECap\n
+FortranModulePaths=\\CICECap\n
+eclipse.preferences.version=1
