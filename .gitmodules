@@ -1,6 +1,0 @@
-[submodule "CAP"]
-	path = CAP
-	url = https://github.com/feiliuesmf/model_cap.git
-[submodule "MODEL"]
-	path = MODEL
-	url = https://github.com/feiliuesmf/model.git
