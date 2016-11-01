@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/photran.managedbuild.toolchain.gnu.fortran.exe.debug.1879100676/ESMFMKFILE/delimiter=\:
+environment/project/photran.managedbuild.toolchain.gnu.fortran.exe.debug.1879100676/ESMFMKFILE/operation=append
+environment/project/photran.managedbuild.toolchain.gnu.fortran.exe.debug.1879100676/ESMFMKFILE/value=/home/rocky/ESMF-INSTALLS/head/lib/libO/Linux.gfortran.64.openmpi.default/esmf.mk
+environment/project/photran.managedbuild.toolchain.gnu.fortran.exe.debug.1879100676/append=true
+environment/project/photran.managedbuild.toolchain.gnu.fortran.exe.debug.1879100676/appendContributed=true
