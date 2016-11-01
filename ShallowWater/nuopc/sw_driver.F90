@@ -5,9 +5,7 @@ module sw_driver
     use NUOPC_Driver, driver_SetServices => SetServices, &
         driver_label_SetModelServices => label_SetModelServices
 		
-    use ShallowWaterCap, only: sw_SetServices => SetServices
-    use ATM, only: ATM_SS => SetServices
-    use NUOPC_Connector, only: cplSS => SetServices
+    use sw_cap, only: sw_SetServices => SetServices
 
     implicit none
 
@@ -51,20 +49,6 @@ contains
 
         call NUOPC_DriverAddComp(driver, compLabel="SW", &
             compSetServicesRoutine=sw_SetServices, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
-
-        call NUOPC_DriverAddComp(driver, compLabel="ATM", &
-            compSetServicesRoutine=ATM_SS, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
-
-        call NUOPC_DriverAddComp(driver, srcCompLabel="SW", &
-            dstCompLabel="ATM", compSetServicesRoutine=cplSS, rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
