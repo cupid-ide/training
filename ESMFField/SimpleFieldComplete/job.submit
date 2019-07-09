@@ -1,0 +1,13 @@
+#!/bin/tcsh
+#PBS -N ESMFField
+#PBS -A P93300606
+#PBS -l walltime=00:10:00
+#PBS -q regular
+#PBS -j oe
+#PBS -m abe
+#PBS -M dunlap@ucar.edu
+#PBS -l select=1:ncpus=36:mpiprocs=36
+
+### Run the executable
+pwd
+mpiexec_mpt -np 4 ./ESMF_FieldTest
